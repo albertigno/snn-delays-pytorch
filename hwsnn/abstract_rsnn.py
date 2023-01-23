@@ -3,10 +3,8 @@ import torch
 import torch.nn as nn
 from hwsnn.activation_functions import ActFunStep, ActFunFastSigmoid, ActFunMultiGaussian
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 import seaborn as sns
 import numpy as np
-from sklearn.metrics import confusion_matrix
 import json
 from torch.optim.lr_scheduler import StepLR
 
@@ -81,26 +79,10 @@ class Abstract_SNN():
         elif self.surr == 'mg':
             self.act_fun = ActFunMultiGaussian.apply
 
-        if self.dataset == 'nmnist':
-            self.num_train_samples = 60000
-            self.num_input = 34*34*2
-            self.num_output = 10
-        if self.dataset == 'smnist':
-            self.num_train_samples = 60000
-            self.num_input = 99
-            self.num_output = 10
         if self.dataset == 'shd':
             self.num_train_samples = 8156
             self.num_input = 700
             self.num_output = 20
-        if self.dataset == 'ibmgestures_32':
-            self.num_train_samples = 1076
-            self.num_input = 2048
-            self.num_output = 11
-        if self.dataset == 'ibmgestures':
-            self.num_input = 32768
-            self.num_train_samples = 1076
-            self.num_output = 11
         if self.dataset.split('_')[0] == 'custom':
             self.num_input = int(self.dataset.split('_')[1])
             self.num_output = int(self.dataset.split('_')[2])
@@ -200,68 +182,6 @@ class Abstract_SNN():
         self.epoch = self.epoch + 1
         self.train_loss.append([self.epoch, total_loss_train / num_iter])
 
-    def train_step_tr(self, train_loader=None, optimizer=None, criterion=None, spkreg=0.0, depth=5, K=None, last=False):
-
-        '''
-        same as train step but for truncated BPTT
-        possibly outdated
-        TO DO: merge with train_step
-        '''
-
-        total_loss_train = 0
-        running_loss = 0
-        truncated_loss = 0
-        total = 0
-
-        num_iter = self.num_train_samples // self.batch_size
-        sr = spkreg/self.win
-
-        time_window = self.win
-        self.win = depth
-
-        if last:
-            steps = [time_window-1]
-        else:
-            if K == None:
-                steps = (np.arange(0, time_window+1, depth)-1)[1:]
-            else:
-                steps = (np.arange(0, time_window+1, time_window//K)-1)[1:]
-                steps = [step for step in steps if (step >= depth-1)]
-
-        for i, (images, labels) in enumerate(train_loader):
-            self.zero_grad()
-            optimizer.zero_grad()
-            images = images > 0
-            images = images.float().squeeze().to(self.device)
-            labels = labels.float().to(self.device)
-
-            for step in steps:
-
-                self.zero_grad()
-                optimizer.zero_grad()
-
-                outputs = self.forward(images[:, step-depth+1:step+1, :])
-
-                truncated_loss = criterion(outputs, labels)
-
-                truncated_loss.backward()
-
-                optimizer.step()  # parameter update
-
-            total_loss_train += truncated_loss.detach().item()
-
-            total += labels.size(0)
-            running_loss += truncated_loss.item()
-
-            if (i + 1) % int(num_iter/3.0) == 0:
-                print('Step [%d/%d], Loss: %.5f'
-                      % (i + 1, self.num_train_samples // self.batch_size, running_loss))
-                running_loss = 0
-
-        self.epoch = self.epoch + 1
-        self.train_loss.append([self.epoch, total_loss_train / total])
-
-        self.win = time_window
 
     def test(self, test_loader=None, dropout=0.0):
 
@@ -326,32 +246,6 @@ class Abstract_SNN():
             self.win, total_spk_count * (self.batch_size / total)))
         print('Test Accuracy of the model on the test samples: %.3f' % (acc))    
 
-    def conf_matrix(self, test_loader=None, labels=None, criterion=nn.MSELoss()):
-
-        '''
-        probably outdated
-        '''
-
-        self.save_model()
-        snn_cpu = Abstract_SNN()  # copy of self, doing this to always evaluate on cpu
-        snn_cpu.load_model('rsnn', batch_size=self.batch_size)
-
-        all_preds = list()
-        all_refs = list()
-
-        for images, labels in test_loader:
-            images = images.float()
-            labels = labels.float()
-            outputs = snn_cpu(images)
-            spk_count = self.h_sumspike / (self.batch_size * self.num_hidden)
-            loss = criterion(outputs, labels)
-            _, predicted = torch.max(outputs.data, 1)
-            _, reference = torch.max(labels.data, 1)
-
-            all_preds = all_preds + list(predicted.numpy())
-            all_refs = all_refs + list(reference.numpy())
-
-        print(confusion_matrix(all_refs, all_preds))
 
     def save_model(self, modelname='rsnn', directory = ''):
 
@@ -382,23 +276,6 @@ class Abstract_SNN():
 
         torch.save(state, os.path.join(CHECKPOINT_PATH, directory, modelname),  _use_new_zipfile_serialization=False)
 
-    def save_to_numpy(self, directory='default'):
-        layers_location = os.path.join(CHECKPOINT_PATH, directory)
-
-        if not os.path.isdir(layers_location):
-            os.mkdir(layers_location)
-
-        weights_biases = []
-        snn_state_dict = self.state_dict()
-
-        with open(layers_location+'/model_info', 'a') as logs:
-            spk = self.test_spk_count[-1][1].detach().cpu().numpy()
-            logs.write("avg spk neuron/sample {}".format(spk))
-            logs.write("\navg spk neuron/timestep {}".format(spk*(self.num_hidden/self.win)))
-
-        for k in snn_state_dict:
-            np.savez(layers_location+'/'+k, snn_state_dict[k].data.cpu().numpy())
-            weights_biases.append(snn_state_dict[k].data.cpu().numpy())
 
     def lr_scheduler(self, optimizer, lr_decay_epoch=1, lr_decay=0.98):
         """Decay learning rate by a factor of 0.98 every lr_decay_epoch epochs."""
@@ -470,15 +347,6 @@ class Abstract_SNN():
             ax.set_title('weights', fontsize=16)
             return ax
 
-    @staticmethod
-    def square(num):
-        '''
-        get two closest factors of num so we can plot a vector of length num as an square-ish matrix
-        '''
-        factor1 = [x for x in range(1, num+1) if num % x == 0]
-        factor2 = [int(num/x) for x in factor1]
-        idx = np.argmin(np.abs(np.array(factor2) - np.array(factor1)))
-        return factor1[idx], factor2[idx]
 
     def plot_per_neuron(self, w, n_cols=3, num_channels=1):
         '''
@@ -520,53 +388,6 @@ class Abstract_SNN():
         plt.tight_layout()
         return fig
 
-    def quantize_weights(self, bits):
-
-        def reduce_precision(weights, bits):
-            scale = (1+bits)*(weights.max()-weights.min())/(2*bits+3)
-            m = scale*torch.round((weights/scale)*2**bits)/(2**bits)
-            return m
-
-        with torch.no_grad():
-            self.fc_hh.weight.data = torch.nn.Parameter(reduce_precision(self.fc_hh.weight.data, bits))
-            self.fc_ih.weight.data = torch.nn.Parameter(reduce_precision(self.fc_ih.weight.data, bits))
-            self.fc_ho.weight.data = torch.nn.Parameter(reduce_precision(self.fc_ho.weight.data, bits))
-
-    def prune_weights(self, percentage):
-        pass
-
-    def mask_weights(self, layer, mask, override=False, trainable=True):
-        # print(mask)
-        # print(self.fc_hh.weight.data)
-        if layer.weight.data.shape == mask.shape:
-            new_weight = mask if override else layer.weight.data * mask
-            layer.weight = torch.nn.Parameter(new_weight, requires_grad=trainable)
-
-        else:
-            print('Mask weights failed: dimension mismatch')
-
-    @staticmethod
-    def animation(x, cmap='RdBu'):
-        '''
-        animates a [time, x, y] matrix
-        '''
-
-        fig = plt.figure(figsize=(9, 9))
-
-        vmax = np.max(x)
-        vmin = np.min(x)
-
-        im = plt.imshow(x[0, :, :], cmap=cmap, vmax=vmax, vmin=vmin)
-
-        def animate(frame_num):
-            im.set_data(x[frame_num, :, :])
-            im.axes.set_title(str(frame_num))
-
-        interval = 2000 / len(x)  # 2 seconds
-
-        anim = FuncAnimation(fig, animate, frames=len(x), interval=interval)
-
-        return anim
 
 
 class Abstract_SNN_Delays(Abstract_SNN):
@@ -727,62 +548,3 @@ class Abstract_SNN_Delays(Abstract_SNN):
         self.set_input_layer()
         self.set_hidden_layers()
         self.set_layer_lists()
-
-    def save_to_json_list(self, directory='default', multidelays=True):
-
-        '''
-        probably outdated
-        '''
-
-        def project_ih_weights(weights, delays):
-            inh_synapses = []
-            exc_synapses = []
-            print('projecting ih weights...')
-            for wi, w in enumerate(weights):
-                for i in range(w.shape[1]):
-                    for j in range(w.shape[0]):
-                        if float(w[j, i]) != 0.0:
-                            if float(w[j, i]) < 0.0:
-                                inh_synapses.append([i, j, float(-1.0*w[j, i]), int(delays[wi]+1)])
-                            else:
-                                exc_synapses.append([i, j, float(w[j, i]), int(delays[wi]+1)])
-            return inh_synapses, exc_synapses
-
-        def project_weights(weights, delay=0):
-            print('projecting hidden weights')
-            inh_synapses = []
-            exc_synapses = []
-            for i in range(weights.shape[1]):
-                for j in range(weights.shape[0]):
-                    if float(weights[j, i]) < 0.0:
-                        inh_synapses.append([i, j, float(-1.0*weights[j, i]), delay+1])
-                    else:
-                        exc_synapses.append([i, j, float(weights[j, i]), delay+1])
-            return inh_synapses, exc_synapses
-
-        layers_location = 'checkpoint/' + directory
-        # delays = self.delays
-
-        if not os.path.isdir(layers_location):
-            os.mkdir(layers_location)
-
-        weight_delay_dict = {}
-
-        if multidelays:
-            weights_ih = [getattr(self, 'f0_id'+str(d)).weight.data.detach().cpu().numpy()
-                          for d in self.delays]
-            inh, exc = project_ih_weights(weights_ih, self.delays)
-        else:
-            weights_ih = self.f0_i.weight.data.detach().cpu().numpy()
-            inh, exc = project_weights(weights_ih)
-
-        weight_delay_dict['f0_i'] = {'exc': exc, 'inh': inh}
-
-        for name in self.h_names:
-            h_weights = getattr(self, name).weight.data.detach().cpu().numpy()
-            inh, exc = project_weights(h_weights)
-            weight_delay_dict[name] = {'exc': exc, 'inh': inh}
-
-        with open("{}.json".format(layers_location), 'w') as outfile:
-            json.dump(weight_delay_dict, outfile)
-
