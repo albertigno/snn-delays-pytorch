@@ -1,0 +1,5 @@
+87.5 -> step-sum, 1e-4, lr_scale=(1.0, 1.0)
+88.57 -> mg-mot, 1e-3, lr_scale=(5.0, 2.0), scheduler=(10, 0.95)
+89.84 -> fs-mot, 1e-3, lr_scale=(5.0, 2.0), scheduler=(10, 0.95)
+
+K=15-> fs-mot 89.84 -> 88.
