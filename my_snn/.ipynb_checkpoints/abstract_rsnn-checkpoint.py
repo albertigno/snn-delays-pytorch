@@ -1,7 +1,7 @@
 import os
 import torch
 import torch.nn as nn
-from dsnn.activation_functions import ActFunStep, ActFunFastSigmoid, ActFunMultiGaussian
+from my_snn.activation_functions import ActFunStep, ActFunFastSigmoid, ActFunMultiGaussian
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import seaborn as sns

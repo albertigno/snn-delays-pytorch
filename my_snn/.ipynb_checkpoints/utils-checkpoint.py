@@ -1,6 +1,6 @@
 import torch
 from torchsummary import summary
-from dsnn.abstract_rsnn import CHECKPOINT_PATH
+from my_snn.abstract_rsnn import CHECKPOINT_PATH
 import time 
 import matplotlib.pyplot as plt 
 import os

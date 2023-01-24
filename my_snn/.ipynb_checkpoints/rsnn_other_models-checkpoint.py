@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from dsnn.abstract_rsnn import Abstract_SNN, Abstract_SNN_Delays
+from my_snn.abstract_rsnn import Abstract_SNN, Abstract_SNN_Delays
 
 class RSNN_d(nn.Module, Abstract_SNN_Delays):
 

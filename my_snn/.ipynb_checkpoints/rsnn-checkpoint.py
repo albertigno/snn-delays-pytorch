@@ -9,7 +9,7 @@ Created on Mon Mar 28 15:28:04 2022
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dsnn.abstract_rsnn import Abstract_SNN
+from my_snn.abstract_rsnn import Abstract_SNN
 
 class RSNN(Abstract_SNN, nn.Module):
 
