@@ -21,8 +21,8 @@ class Abstract_SNN():
 
         super(Abstract_SNN, self).__init__()
 
-        self.debug = False
-        # self.debug = True
+        # self.debug = False
+        self.debug = True
 
         self.num_hidden = num_hidden
         self.batch_size = batch_size
@@ -386,8 +386,8 @@ class Abstract_SNN_Delays(Abstract_SNN):
     def __init__(self, dataset='nmnist', hidden=(256, 2, 'r'), delay=None, thresh=0.3, tau_m='adp', win=50, surr='step', loss_fn='mot', batch_size=256, device='cuda'):
         super(Abstract_SNN, self).__init__()
 
-        self.debug = False
-        #self.debug = True
+        #self.debug = False
+        self.debug = True
 
         self.num_hidden = hidden[0]
         self.n_layers = hidden[1]

@@ -161,7 +161,7 @@ class RSNN_d_d(Abstract_SNN_Delays, nn.Module):
         self.tau_idx = self.tau_idx+1
         self.w_idx = self.w_idx + 1
         o_spike = self.act_fun(mem-self.output_thresh)
-        mem = mem*(mem < self.thresh)
+        #mem = mem*(mem < self.thresh)
         return mem, o_spike
 
     def mem_update(self, i_spike, o_spike, mem):
@@ -171,7 +171,7 @@ class RSNN_d_d(Abstract_SNN_Delays, nn.Module):
         self.tau_idx = self.tau_idx+1
         self.w_idx = self.w_idx + 1
         o_spike = self.act_fun(mem-self.thresh)
-        mem = mem*(mem < self.thresh)
+        #mem = mem*(mem < self.thresh)
         return mem, o_spike
 
     def mem_update_rnn(self, i_spike, o_spike, mem):
@@ -186,7 +186,7 @@ class RSNN_d_d(Abstract_SNN_Delays, nn.Module):
         # mem = a0 + a2 + a4 + b + c
         mem = a + b + c
         o_spike = self.act_fun(mem-self.thresh)
-        mem = mem*(mem < self.thresh)
+        #mem = mem*(mem < self.thresh)
         return mem, o_spike
 
 
