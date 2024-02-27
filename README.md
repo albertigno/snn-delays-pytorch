@@ -1,5 +1,5 @@
-# snn-axonal-delays-pytorch
-Training SNNs with axonal synaptic delays in Pytorch
+# snn-delays-pytorch
+Training SNNs with synaptic delays in Pytorch
 
 environment where this was tested:
 
