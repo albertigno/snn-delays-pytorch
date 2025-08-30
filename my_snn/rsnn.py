@@ -15,7 +15,7 @@ class RSNN(Abstract_SNN, nn.Module):
 
     def define_operations(self):
 
-        if self.tau_m != 'adp':
+        if type(self.tau_m) == float:
             self.tau_m_h = nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)
             self.tau_m_o = nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)
             # self.tau_m_o = torch.Tensor([self.tau_m])
@@ -108,7 +108,7 @@ class RSNN_2l(Abstract_SNN, nn.Module):
 
     def define_operations(self):
 
-        if self.tau_m != 'adp':
+        if type(self.tau_m) == float:
             self.tau_m_h_1 = nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)
             self.tau_m_h_2 = nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)
             self.tau_m_o = nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)
@@ -218,7 +218,7 @@ class RSNN_2l_ALIF(RSNN_2l):
 
     def define_operations(self):
 
-        if self.tau_m != 'adp':
+        if type(self.tau_m) == float:
             self.tau_m_h_1 = nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)
             self.tau_m_h_2 = nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)
             self.tau_m_o = nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)

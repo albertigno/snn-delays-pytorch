@@ -532,7 +532,7 @@ class RSNN_d_d_ALIF(RSNN_d_d):
         for name in self.h_names:
             self.h_layers.append(getattr(self, name))
 
-        if self.tau_m == 'adp':
+        if  'adp' in self.tau_m:
             self.tau_m_h = [getattr(self, name) for name in ['tau_m_'+str(i+1)
                                                              for i in range(self.n_layers)]]
             self.tau_m_h.append(self.tau_m_o)

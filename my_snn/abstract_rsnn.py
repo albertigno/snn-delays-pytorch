@@ -441,11 +441,17 @@ class Abstract_SNN_Delays(Abstract_SNN):
 
     def define_tau_m(self):
 
-        if self.tau_m != 'adp':
-            self.tau_m_h = [nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)
-                            for i in range(self.n_layers+1)]
-        else:
-            mean = 0  # 0.83
+        if 'adp' in self.tau_m:
+            
+            logit = lambda x: np.log(x/(1-x))
+
+            if 'st' in self.tau_m:
+                mean_tau = 5 # real_tau for to N(0,1), T=250 (by inspection, need to check numbers)
+                delta_t = 1e3/self.win
+                mean = logit(np.exp(-delta_t/mean_tau))
+            else:
+                mean = 0  # 0.83
+                
             std = 1  # 0.1
             for i in range(self.n_layers):
                 name = 'tau_m_'+str(i+1)
@@ -454,6 +460,9 @@ class Abstract_SNN_Delays(Abstract_SNN):
             name = 'tau_m_o'
             setattr(self, name, nn.Parameter(torch.Tensor(self.num_output)))
             nn.init.normal_(getattr(self, name), mean, std)
+        else: # float value
+            self.tau_m_h = [nn.Parameter(torch.Tensor([self.tau_m]), requires_grad=False)
+                            for i in range(self.n_layers+1)]
 
     def define_hidden_layer_names(self):
 
@@ -515,7 +524,7 @@ class Abstract_SNN_Delays(Abstract_SNN):
         for name in self.h_names:
             self.h_layers.append(getattr(self, name))
 
-        if self.tau_m == 'adp':
+        if 'adp' in self.tau_m:
             self.tau_m_h = [getattr(self, name) for name in ['tau_m_'+str(i+1)
                                                              for i in range(self.n_layers)]]
             self.tau_m_h.append(self.tau_m_o)
