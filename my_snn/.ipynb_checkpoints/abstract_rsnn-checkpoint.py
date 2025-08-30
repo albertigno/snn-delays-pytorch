@@ -93,6 +93,10 @@ class Abstract_SNN():
             self.num_train_samples = 8156
             self.num_input = 700
             self.num_output = 20
+        if self.dataset == 'shd140':
+            self.num_train_samples = 8156
+            self.num_input = 140
+            self.num_output = 20
         if self.dataset == 'DVSGesture_32':
             self.num_train_samples = 1076
             self.num_input = 2048
